@@ -55,6 +55,7 @@ brew "python@3.11"
 # Hashicorp Tools
 brew "consul"
 brew "nomad"
+brew "packer"
 brew "terraform"
 brew "tfenv"
 brew "vault"
