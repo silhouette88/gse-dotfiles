@@ -62,7 +62,7 @@ get_bundle ekalinin Dockerfile.vim
 get_bundle christoomey vim-tmux-navigator
 get_bundle ngmy vim-rubocop
 get_bundle mbbill undotree
-get_bundle vimwiki vimwiki
+# get_bundle vimwiki vimwiki
 get_bundle michal-h21 vim-zettel
 
 vim -c 'call pathogen#helptags()|q'
