@@ -1,0 +1,106 @@
+let mapleader = "," " map leader to comma
+set showcmd
+
+map <leader>h :noh<CR>
+map <leader>vs :vsplit<CR>
+
+" vim-terraform
+let g:terraform_align=1
+let g:terraform_fmt_on_save=1
+let g:terraform_fold_sections=1
+
+autocmd BufWinLeave *.* mkview
+autocmd BufWinEnter *.* silent loadview 
+
+" cargo culted from https://gist.github.com/simonista/8703722
+" Turn on syntax highlighting
+syntax on
+
+" Workaround for ensuring vimwiki isn't mapping <Tab> and breaking Copilot completion
+" let g:vimwiki_list = [{'path': '~/vimwiki/', 'syntax': 'markdown', 'ext': '.md', 'key_mappings': {'complete_tag': '<leader>l'}}]
+
+" Copilot settings
+colorscheme mycolorscheme
+let g:copilot_filetypes = {'markdown': v:true}
+set completeopt+=menu
+set shortmess+=c
+" Cycle to the next suggestion with <S-C-N>
+inoremap <S-C-N> <Plug>(copilot-next)
+
+" Cycle to the previous suggestion with <S-C-P>
+inoremap <S-C-P> <Plug>(copilot-previous)
+
+" Request a suggestion with <S-C-R>
+inoremap <S-C-E> <Plug>(copilot-suggest)
+
+" For plugins to load correctly
+filetype plugin indent on
+
+" Security
+set modelines=0
+
+" Show line numbers
+set number
+
+" Show file stats
+set ruler
+
+" Blink cursor on error instead of beeping (grr)
+set visualbell
+
+" Encoding
+set encoding=utf-8
+
+" Whitespace
+set wrap
+set textwidth=79
+set formatoptions=tcqrn1
+set tabstop=2
+set shiftwidth=2
+set softtabstop=2
+set expandtab
+set noshiftround
+
+" Cursor motion
+set scrolloff=3
+set backspace=indent,eol,start
+set matchpairs+=<:> " use % to jump between pairs
+runtime! macros/matchit.vim
+
+" Move up/down editor lines
+nnoremap j gj
+nnoremap k gk
+
+" Allow hidden buffers
+set hidden
+
+" Rendering
+set ttyfast
+
+" Status bar
+set laststatus=2
+
+" Last line
+set showmode
+set showcmd
+
+" Searching
+" nnoremap / /\v
+" vnoremap / /\v
+set hlsearch
+set incsearch
+set ignorecase
+set smartcase
+set showmatch
+map <leader><space> :let @/=''<cr> " clear search
+
+" Remap help key.
+inoremap <F1> <ESC>:set invfullscreen<CR>a
+nnoremap <F1> :set invfullscreen<CR>
+vnoremap <F1> :set invfullscreen<CR>
+
+" Textmate holdouts
+
+" Formatting
+map <leader>q gqip
+
