@@ -1,0 +1,214 @@
+muxable_paths=($SOURCE_DIR/ke)
+cdpath=("${muxable_paths[@]}" "." "~" "${SOURCE_DIR}")
+
+clone() {
+  local url basename example new org_source_dir org service
+
+  ORG="$1"
+  case $1 in
+    'ke')
+      org_source_dir="${SOURCE_DIR}/ke"
+      org="kalkomey"
+      service="github.com"
+      ;;
+  esac
+
+  if [ ! -d "${org_source_dir}" ]; then
+    echo "Directory ${org_source_dir} does not exist."
+    echo "Creating ${org_source_dir}"
+  fi
+  shift
+
+  basename="`basename $1 .git`"
+  echo "${org_source_dir}/${basename}"
+  if [ ! -d "${org_source_dir}/${basename}" ]; then
+    new=1
+    case "$1" in
+      *:*) url="$1" ;;
+      */*) url="git@${service}:$1.git" ;;
+      *)   url="git@${service}:${org}/$1.git" ;;
+    esac
+    git clone "${url}" "${org_source_dir}/${basename}"
+    cd "${org_source_dir}/${basename}"
+    if [ -d "${org_source_dir}/${basename}/config" ]; then
+      for example in "${org_source_dir}/${basename}"/config/*.example.yml; do
+        cp "$example" "${example%.example.yml}.yml"
+      done 2>/dev/null
+    fi
+  fi
+  cd "${org_source_dir}/${basename}"
+  ln -sf ../bin .git
+  mkdir -p .git/safe
+  if [ ! -f .git/hooks/post-rewrite ]; then
+    cat > .git/hooks/post-rewrite <<EOS
+#!/bin/sh
+
+GIT_DIR="\$(dirname "\$(dirname "\$0")")"
+export GIT_DIR
+
+case "\$1" in
+  rebase) exec "\$GIT_DIR/hooks/post-merge" 0 rebase ;;
+esac
+EOS
+  fi
+  if [ ! -f .git/hooks/pre-commit ]; then
+    echo '#!/bin/sh' > .git/hooks/pre-commit
+    echo 'git diff --exit-code --cached -- Gemfile Gemfile.lock >/dev/null || bundle check' >> .git/hooks/pre-commit
+  fi
+  if [ ! -f .git/hooks/ctags ]; then
+    echo '#!/bin/sh' > .git/hooks/ctags
+    echo 'rm -f .git/tags' >> .git/hooks/ctags
+    echo 'ctags --tag-relative -f .git/tags --exclude=.git --exclude=db --exclude=public/uploads --exclude=vendor --exclude=tmp --languages=-javascript,html,sql -R' >> .git/hooks/ctags
+    chmod +x .git/hooks/ctags
+    for basename in post-checkout post-commit post-merge; do
+      echo '#!/bin/sh' > .git/hooks/$basename
+      echo '$GIT_DIR/hooks/ctags >/dev/null 2>&1 &' >> .git/hooks/$basename
+      chmod +x .git/hooks/$basename
+    done
+    .git/hooks/ctags
+  fi
+  echo 'if command -v hookup >/dev/null; then' >> .git/hooks/post-checkout
+  echo '  hookup post-checkout "$@"' >> .git/hooks/post-checkout
+  echo "fi" >> .git/hooks/post-checkout
+  if [ -n "$new" -a -x script/setup ]; then
+    script/setup
+  elif [ -n "$new" -a -x bin/setup ]; then
+    bin/setup
+  fi
+}
+
+PERL_MB_OPT="--install_base \"/${HOME}/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=/${HOME}/perl5"; export PERL_MM_OPT;
+
+export TMPDIR=~/tmp
+
+# Docker kill for a specific app
+function dkill() {
+  dc="$(which docker-compose)"
+  docker_cmd="$(which docker)"
+  app_name="$1"
+
+  cd ${app_name}
+  app_is_running=$(${dc} top)
+  if [ -z "${app_is_running}" ]; then
+    echo "No docker-compose processes running for: '${app_name}'"
+  else
+    ${dc} down
+  fi
+
+  processes=($(${docker_cmd} ps --filter "name=${app_name}" -q | uniq))
+  if [[ ${#processes[@]} -eq 0 ]]; then
+    echo "No processes matching '${app_name}' were found to kill"
+  else
+    for p in ${processes[*]}; do
+      ${docker_cmd} rm -f -v ${p}
+    done
+  fi
+
+  images=($(${docker_cmd} images ${app_name}* -q | uniq))
+  if [[ ${#images[@]} -eq 0 ]]; then
+    echo "No images matching '${app_name}' were found to kill"
+  else
+    for i in ${images[*]}; do
+      ${docker_cmd} rmi -f ${i}
+    done
+  fi
+
+}
+
+function dcrun() {
+  docker_cmd="$(which docker-compose)"
+  container_name="$1"
+  shift
+  ${docker_cmd} run ${container_name} bash -c -l "$*"
+}
+
+function dbe() {
+  dcrun web "bundle exec $*"
+}
+
+function docker-clean-exited() {
+  if [[ $(docker ps -a -q -f status=exited | wc -l) -eq 0 ]]; then
+    echo "Exited docker containers are already clean.  :-)"
+  else
+    docker rm -v $(docker ps -a -q -f status=exited)
+  fi
+}
+
+function docker-clean-images() {
+  if [[ $(docker images -f "dangling=true" -q | wc -l) -eq 0 ]]; then
+    echo "Dangling docker images are already clean.  :-)"
+  else
+    docker rmi $(docker images -f "dangling=true" -q)
+  fi
+}
+
+ssh-add -A 2>/dev/null
+
+# export AWS_DEFAULT_REGION='us-gov-west-1'
+# export AWS_REGION='us-gov-west-1'
+export AWS_VAULT_BACKEND=keychain
+export HOST_IP=$(ipconfig getifaddr en0)
+export PATH="/Users/chrissessions/bin:$PATH:/Users/chrissessions/Library/Python/3.9/bin:/Users/chrissessions/.tfenv/bin:/Users/chrissessions/Library/Python/3.10/bin"
+export VAULT_ADDR=https://vault.ke-eng.io
+export VAULT_SKIP_VERIFY=true
+export NOMAD_ADDR=https://nomad-servers.ke-eng.io
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-15.jdk/Contents/Home
+# Disabling apollo anonymous telemetry collection
+export APOLLO_TELEMETRY_DISABLED=1
+
+autoload -U +X bashcompinit && bashcompinit
+complete -o nospace -C /usr/local/bin/nomad nomad
+
+# Load rbenv automatically
+#eval "$(rbenv init -)"
+
+# Because no arraw keys
+bindkey "^P" up-line-or-search
+bindkey "^N" down-line-or-search
+
+# Path to your oh-my-zsh installation.
+export ZSH="/Users/chrissessions/.oh-my-zsh"
+# Set name of the theme to load --- if set to "random", it will
+# load a random theme each time oh-my-zsh is loaded, in which case,
+# to know which specific one was loaded, run: echo $RANDOM_THEME
+# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
+#ZSH_THEME="robbyrussell"
+#ZSH_THEME="macovsky-ruby"
+ZSH_THEME="agnoster"
+#ZSH_THEME="itchy"
+#ZSH_THEME="random"
+plugins=(git)
+source $ZSH/oh-my-zsh.sh
+prompt_context(){} #hide user@hostname on localhost
+export PATH="/usr/local/opt/openjdk/bin:/usr/local/opt/mysql-client/bin:/usr/local/opt/make/libexec/gnubin:/usr/local/opt/postgresql@12/bin:/usr/local/go/bin:/usr/local/opt/node@16/bin:/Users/chrissessions/gam:$PATH"
+# Needed to use GPG signing key for git
+export GPG_TTY=$(tty)
+# Clear shell command history
+eval $(shellclear --init-shell)
+
+###########
+# Aliases #
+###########
+alias bp="bundle package --all --no-install"
+alias dc="$(which docker-compose)"
+alias dcd="docker-compose down"
+alias dcu="docker-compose up"
+alias docker-clean="docker-clean-exited; docker-clean-images"
+alias gclone="clone ke"
+alias gpr="git pull --rebase --prune"
+alias head="/usr/local/bin/ghead"
+alias ..="cd .."
+alias ....="cd ../.."
+alias ......="cd ../../.."
+alias ave="aws-vault exec"
+alias fml="sudo killall -HUP mDNSResponder;sudo killall mDNSResponderHelper;sudo dscacheutil -flushcache"
+
+# pyenv setup
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+
+# chruby
+source /usr/local/opt/chruby/share/chruby/chruby.sh
+source /usr/local/opt/chruby/share/chruby/auto.sh
