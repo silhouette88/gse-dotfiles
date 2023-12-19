@@ -38,13 +38,16 @@ unsetopt nomatch
 # set cd autocompletion to commonly visited directories
 cdpath=(. ~ ~/src $SOURCE_DIR)
 
-# rust, et al
+# go, rust, et al
 export PATH="$HOME/.cargo/bin:$PATH"
 
 # chruby!
-# osx location
+# osx location - option 1
 [[ ! -a /usr/local/opt/chruby/share/chruby/chruby.sh ]] || source /usr/local/opt/chruby/share/chruby/chruby.sh
 [[ ! -a /usr/local/opt/chruby/share/chruby/auto.sh ]] || source /usr/local/opt/chruby/share/chruby/auto.sh
+# macos location - option 2
+[[ ! -a /opt/homebrew/opt/chruby/share/chruby/chruby.sh ]] || source /opt/homebrew/opt/chruby/share/chruby/chruby.sh
+[[ ! -a /opt/homebrew/opt/chruby/share/chruby/auto.sh ]] || source /opt/homebrew/opt/chruby/share/chruby/auto.sh
 # ubuntu location
 [[ ! -a /usr/local/share/chruby/chruby.sh ]] || source /usr/local/share/chruby/chruby.sh
 [[ ! -a /usr/local/share/chruby/auto.sh ]] || source /usr/local/share/chruby/auto.sh
@@ -53,21 +56,30 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm on newer Homebrew installs
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
 
-# export CPPFLAGS="-I/usr/local/opt/libffi/include -I/usr/local/opt/openssl@1.1/include -I/usr/local/opt/readline/include -I/usr/local/opt/binutils/include"
-# export LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/libffi/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/opt/readline/lib -L/usr/local/opt/binutils/lib"
-# export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/openssl@1.1/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig"
+if [ -d /opt/homebrew/opt ]; then
+  export PATH="/opt/homebrew/bin:/opt/homebrew/opt/openssl@1.1/bin:$PATH"
+  export PATH="/opt/homebrew/sbin:$PATH"
+  export CPPFLAGS="-I/opt/homebrew/opt/libffi/include -I/opt/homebrew/opt/openssl@1.1/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/binutils/include"
+  export LDFLAGS="-L/opt/homebrew/opt/bison/lib -L/opt/homebrew/opt/libffi/lib -L/opt/homebrew/opt/openssl@1.1/lib -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/opt/binutils/lib"
+  export PKG_CONFIG_PATH="/opt/homebrew/opt/libffi/lib/pkgconfig:/opt/homebrew/opt/openssl@1.1/lib/pkgconfig:/opt/homebrew/opt/readline/lib/pkgconfig"
+  export RUBY_CONFIGURE_OPTS="--with-openssl-dir=/opt/homebrew/opt/openssl@1.1"
+else
+  export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"
+  export CPPFLAGS="-I/usr/local/opt/libffi/include -I/usr/local/opt/openssl@1.1/include -I/usr/local/opt/readline/include -I/usr/local/opt/binutils/include"
+  export LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/libffi/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/opt/readline/lib -L/usr/local/opt/binutils/lib"
+  export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/openssl@1.1/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig"
+  export RUBY_CONFIGURE_OPTS="--with-openssl-dir=/usr/local/opt/openssl@1.1"
+fi
 
-export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"
-export CPPFLAGS="-I/usr/local/opt/libffi/include -I/usr/local/opt/openssl@1.1/include -I/usr/local/opt/readline/include -I/usr/local/opt/binutils/include"
-export LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/libffi/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/opt/readline/lib -L/usr/local/opt/binutils/lib"
-export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/openssl@1.1/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig"
-export RUBY_CONFIGURE_OPTS="--with-openssl-dir=/usr/local/opt/openssl@1.1"
+export DOCKER_PLATFORM="linux/$(uname -m)"
 
 # import local zsh customizations, if present
 zrcl="$HOME/.zshrc.local"
 
 [[ ! -a $zrcl ]] || source $zrcl
 
-function gam() { "/Users/csessions/bin/gam/gam" "$@" ; }
-export PYENV_ROOT="$HOME/.pyenv"
+autoload -U +X bashcompinit && bashcompinit
+complete -o nospace -C /opt/homebrew/bin/nomad nomad
