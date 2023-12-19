@@ -39,7 +39,7 @@
         excludesfile = ~/.gitignore
         editor = vim
         whitespace = warn
-	abbrev = 7
+        abbrev = 7
 [help]
         autocorrect = 10
 [interactive]
@@ -48,11 +48,17 @@
         summary = true
 [push]
         default = tracking
+        autoSetupRemote = true
 [rebase]
         autosquash = true
 [web]
         browser = open
 [include]
         path = ~/.gitconfig.local
+[filter "lfs"]
+        smudge = git-lfs smudge -- %f
+        process = git-lfs filter-process
+        required = true
+        clean = git-lfs clean -- %f
 [user]
-	signingkey = 0666823B390BBA24
+        signingkey = 0666823B390BBA24
