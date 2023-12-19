@@ -33,7 +33,7 @@ brew "tmux"
 brew "tree"
 brew "wget"
 brew "xz"
-brew "zlib'
+brew "zlib"
 
 # Application Dependencies
 brew "autoconf"
